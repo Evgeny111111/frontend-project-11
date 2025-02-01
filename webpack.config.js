@@ -1,4 +1,7 @@
 import HtmlWebpackPlugin from 'html-webpack-plugin';
+import path from 'path';
+
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 export default {
   mode: process.env.NODE_ENV || 'development',
@@ -35,6 +38,8 @@ export default {
     }),
   ],
   output: {
+    path: path.resolve(__dirname, 'public'), // Путь к каталогу public
+    filename: '[name].bundle.js',
     clean: true,
   },
 };
