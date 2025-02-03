@@ -1,4 +1,5 @@
+import runApp from './app.js';
 import './styles.css';
 import 'bootstrap';
 
-console.log('hello');
+runApp();
