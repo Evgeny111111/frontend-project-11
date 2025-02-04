@@ -38,7 +38,7 @@ export default {
     }),
   ],
   output: {
-    path: path.resolve(__dirname, 'public'), // Путь к каталогу public
+    path: path.resolve(__dirname, 'public'),
     filename: '[name].bundle.js',
     clean: true,
   },

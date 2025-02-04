@@ -11,7 +11,7 @@ export default {
       input: 'Ссылка RSS',
       submit: 'Добавить',
     },
-    example: 'Пример: http://www.fontanka.ru/fontanka.rss',
+    example: 'Пример: https://lorem-rss.hexlet.app/feed',
     feedback: {
       success: 'RSS успешно загружен',
       invalidUrl: 'Ссылка должна быть валидным URL',
