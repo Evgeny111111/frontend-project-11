@@ -26,9 +26,12 @@ const validateURL = (url, addedLinks, i18nInstance) => {
   return schema;
 };
 
-const getRssData = (link) => {
-  const allOrigins = `https://allorigins.hexlet.app/get?url=${encodeURIComponent(link)}`;
-  return axios.get(allOrigins);
+const getRssData = (url) => {
+  const allOrigins = 'https://allorigins.hexlet.app/get';
+  const newUrl = new URL(allOrigins);
+  newUrl.searchParams.set('url', url);
+  newUrl.searchParams.set('disableCache', 'true');
+  return axios.get(newUrl.toString());
 };
 
 const normalizeFeed = (feed) => {
