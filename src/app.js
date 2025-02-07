@@ -21,9 +21,11 @@ const validateURL = (url, addedLinks, i18nInstance) => {
     .trim()
     .required(i18nInstance.t('feedback.required'))
     .url(i18nInstance.t('feedback.invalidUrl'))
-    .notOneOf(addedLinks, i18nInstance.t('feedback.duplicate'))
-    .validate(url);
-  return schema;
+    .notOneOf(addedLinks, i18nInstance.t('feedback.duplicate'));
+
+  return schema.validate(url).catch((error) => {
+    throw new Error(error.message); // Если ошибка валидации, выбрасываем с сообщением
+  });
 };
 
 const getRssData = (url) => {
@@ -107,94 +109,93 @@ const app = () => {
   const i18nInstance = i18n.createInstance();
   i18nInstance.init({
     lng: 'ru',
-    debug: false,
-    resources: { ru },
-  });
+    resources: ru,
+  }).then(() => {
+    const state = {
+      form: {
+        isValid: false,
+        formState: 'idle',
+      },
+      addedLinks: [],
+      feeds: [],
+      posts: [],
+      viewedPosts: [],
+      activePost: null,
+      error: null,
+      ui: {
+        submitDisabled: false,
+      },
+      feedback: {
+        success: i18nInstance.t('feedback.success'),
+        invalidRss: i18nInstance.t('feedback.invalidRss'),
+        invalidUrl: i18nInstance.t('feedback.invalidUrl'),
+        duplicate: i18nInstance.t('feedback.duplicate'),
+        networkError: i18nInstance.t('feedback.networkError'),
+      },
+    };
 
-  const state = {
-    form: {
-      isValid: false,
-      formState: 'idle',
-    },
-    addedLinks: [],
-    feeds: [],
-    posts: [],
-    viewedPosts: [],
-    activePost: null,
-    error: null,
-    ui: {
-      submitDisabled: false,
-    },
-    feedback: {
-      success: i18nInstance.t('feedback.success'),
-      invalidRss: i18nInstance.t('feedback.invalidRss'),
-      invalidUrl: i18nInstance.t('feedback.invalidUrl'),
-      duplicate: i18nInstance.t('feedback.duplicate'),
-      networkError: i18nInstance.t('feedback.networkError'),
-    },
-  };
+    const watchedState = onChange(state, () => {
+      render(state, elements, i18nInstance);
+    });
 
-  const watchedState = onChange(state, () => {
-    render(state, elements, i18nInstance);
-  });
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      watchedState.error = null;
+      watchedState.form.formState = 'sending';
+      watchedState.ui.submitDisabled = true;
+      const formData = new FormData(e.target);
+      const url = formData.get('url');
+      validateURL(url, watchedState.addedLinks, i18nInstance)
+        .then((validUrl) => getRssData(validUrl))
+        .then((response) => parse(response.data.contents))
+        .then((parsedData) => {
+          const { feed } = parsedData;
+          feed.link = url;
+          const normalizedParsedFeed = normalizeFeed(feed);
+          watchedState.feeds.unshift(normalizedParsedFeed);
+          const posts = normalizePosts(parsedData.posts);
+          const allPosts = posts.concat(watchedState.posts);
+          watchedState.posts = allPosts;
+        })
+        .then(() => {
+          watchedState.form.isValid = true;
+          watchedState.error = null;
+          watchedState.addedLinks.push(url);
+          watchedState.ui.submitDisabled = false;
+          watchedState.form.formState = 'sent';
+          updatePosts(watchedState);
+        })
+        .catch((error) => {
+          const { message } = error;
+          watchedState.form.formState = 'failed';
+          watchedState.ui.submitDisabled = false;
+          switch (message) {
+            case 'Network Error':
+              watchedState.error = i18nInstance.t('feedback.networkError');
+              break;
+            case 'invalidRss':
+              watchedState.error = i18nInstance.t('feedback.invalidRss');
+              break;
+            default:
+              watchedState.error = error.message;
+              break;
+          }
+          watchedState.form.isValid = false;
+          watchedState.ui.submitDisabled = false;
+        });
+      watchedState.form.formState = 'idle';
+    });
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    watchedState.error = null;
-    watchedState.form.formState = 'sending';
-    watchedState.ui.submitDisabled = true;
-    const formData = new FormData(e.target);
-    const url = formData.get('url');
-    validateURL(url, watchedState.addedLinks, i18nInstance)
-      .then((validUrl) => getRssData(validUrl))
-      .then((response) => parse(response.data.contents))
-      .then((parsedData) => {
-        const { feed } = parsedData;
-        feed.link = url;
-        const normalizedParsedFeed = normalizeFeed(feed);
-        watchedState.feeds.unshift(normalizedParsedFeed);
-        const posts = normalizePosts(parsedData.posts);
-        const allPosts = posts.concat(watchedState.posts);
-        watchedState.posts = allPosts;
-      })
-      .then(() => {
-        watchedState.form.isValid = true;
-        watchedState.error = null;
-        watchedState.addedLinks.push(url);
-        watchedState.ui.submitDisabled = false;
-        watchedState.form.formState = 'sent';
-        updatePosts(watchedState);
-      })
-      .catch((error) => {
-        const { message } = error;
-        watchedState.form.formState = 'failed';
-        watchedState.ui.submitDisabled = false;
-        switch (message) {
-          case 'Network Error':
-            watchedState.error = i18nInstance.t('feedback.networkError');
-            break;
-          case 'invalidRss':
-            watchedState.error = i18nInstance.t('feedback.invalidRss');
-            break;
-          default:
-            watchedState.error = error.message;
-            break;
-        }
-        watchedState.form.isValid = false;
-        watchedState.ui.submitDisabled = false;
-      });
-    watchedState.form.formState = 'idle';
-  });
-
-  const posts = document.querySelector('.posts');
-  posts.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const targetId = Number(e.target.dataset.id);
-    const viewedPost = watchedState.posts.find(({ id }) => id === targetId);
-    if (viewedPost) {
-      watchedState.activePost = viewedPost;
-      watchedState.viewedPosts.push(viewedPost);
-    }
+    const posts = document.querySelector('.posts');
+    posts.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const targetId = Number(e.target.dataset.id);
+      const viewedPost = watchedState.posts.find(({ id }) => id === targetId);
+      if (viewedPost) {
+        watchedState.activePost = viewedPost;
+        watchedState.viewedPosts.push(viewedPost);
+      }
+    });
   });
 };
 
