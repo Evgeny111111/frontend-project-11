@@ -1,29 +1,21 @@
 export default {
   translation: {
-    languages: {
-      ru: 'Русский',
-    },
-    headers: {
-      h1: 'RSS агрегатор',
-      p: 'Начните читать RSS сегодня! Это легко, это красиво.',
-    },
-    form: {
-      input: 'Ссылка RSS',
-      submit: 'Добавить',
-    },
-    example: 'Пример: https://lorem-rss.hexlet.app/feed',
-    feedback: {
+    loading: {
+      loading: 'RSS загружается',
       success: 'RSS успешно загружен',
-      invalidUrl: 'Ссылка должна быть валидным URL',
-      invalidRss: 'Ресурс не содержит валидный RSS',
-      duplicate: 'RSS уже существует',
-      networkError: 'Ошибка сети',
-      required: 'Заполните это поле',
     },
-    items: {
-      posts: 'Посты',
-      feeds: 'Фиды',
+    errors: {
+      notURL: 'Ссылка должна быть валидным URL',
+      exists: 'RSS уже существует',
+      notRSS: 'Ресурс не содержит валидный RSS',
+      network: 'Ошибка сети',
+      timeout: 'Превышено время ожидания ответа',
+      unknown: 'Неизвестная ошибка. Что-то пошло не так',
     },
-    view: 'Просмотр',
+    feeds: 'Фиды',
+    posts: 'Посты',
+    preview: 'Просмотр',
+    close: 'Закрыть',
+    readFull: 'Читать полностью',
   },
 };

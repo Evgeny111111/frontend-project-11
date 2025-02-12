@@ -1,27 +1,26 @@
-const parse = (data) => {
+export default (data) => {
   const parser = new DOMParser();
-  const parsedDoc = parser.parseFromString(data, 'text/xml');
-  const errorNode = parsedDoc.querySelector('parsererror');
-  if (errorNode) {
-    throw new Error('invalidRss');
-  } else {
-    const channel = parsedDoc.querySelector('channel');
-    const feedTitle = channel.querySelector('title');
-    const feedDescription = channel.querySelector('description');
-    const feed = {
-      feedTitle: feedTitle.textContent,
-      feedDescription: feedDescription.textContent,
-    };
-    const items = channel.querySelectorAll('item');
-    const posts = [...items].map((item) => {
-      const title = item.querySelector('title').textContent;
-      const description = item.querySelector('description').textContent;
-      const link = item.querySelector('link').textContent;
-      return { title, description, link };
-    });
-    const resolveData = { feed, posts };
-    return Promise.resolve(resolveData);
-  }
-};
+  const dom = parser.parseFromString(data, 'text/xml');
+  const parseError = dom.querySelector('parsererror');
 
-export default parse;
+  if (parseError) {
+    const error = new Error(parseError.textContent);
+    error.isParsingError = true;
+    error.data = data;
+    throw error;
+  }
+
+  const channelTitle = dom.querySelector('channel > title').textContent;
+  const channelDescription = dom.querySelector('channel > description').textContent;
+
+  const itemsNodes = dom.querySelectorAll('item');
+  const items = [...itemsNodes].map((item) => {
+    const title = item.querySelector('title').textContent;
+    const link = item.querySelector('link').textContent;
+    const description = item.querySelector('description').textContent;
+
+    return { title, link, description };
+  });
+
+  return { title: channelTitle, description: channelDescription, items };
+};

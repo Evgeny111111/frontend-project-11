@@ -1,5 +1,3 @@
 import ru from './ru.js';
 
-export default {
-  ru,
-};
+export default { ru };
